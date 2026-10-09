@@ -1,0 +1,9 @@
+{
+  "id": "workout-tracker",
+  "name": "Workout Tracker",
+  "version": "1.0.0",
+  "minAppVersion": "1.6.0",
+  "description": "Add exercises, build workouts with target sets, log sessions and chart your progress.",
+  "author": "kiszkahubert",
+  "isDesktopOnly": false
+}
