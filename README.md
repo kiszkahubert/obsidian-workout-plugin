@@ -15,6 +15,7 @@ Track exercises, build workouts, log your training and chart your progress, all 
   - Every set is **pre-filled from the last time you did that exercise**, falling back to the template target. Tap ✓ to mark a set done.
   - Shows your target and last session above the sets, and a running timer.
   - Sets that beat your previous best get a live 🏆 PR badge.
+  - **Swap an exercise in place:** tap the exercise name to pick a different one. Exercises for the same muscle group are listed first, then everything else. The set count and rep target carry over, and the sets are pre-filled from the new exercise's own history.
 - **Progress charts:** one chart per exercise, with a choice of metric:
   - Weight × reps: estimated 1RM (Epley), max weight, volume (sets × reps × kg), best set (kg × reps), total reps
   - Bodyweight reps: max reps in a set, total reps
@@ -29,7 +30,7 @@ Track exercises, build workouts, log your training and chart your progress, all 
   - Recent PRs
 - **Time range filter:** 1M / 3M / 6M / 1Y / All on every chart.
 - **Bodyweight tracking:** log your weight and see a trend chart.
-- **History:** browse past workouts by month, expand them for details, and edit or delete them.
+- **History:** browse past workouts by month, expand them for details, and edit or delete them. **Repeat workout** starts a new workout with the same exercises and set values.
 - **Workout notes:** every finished workout also becomes a Markdown note, e.g. `Workouts/2026-10-09 Push Day.md`. It has frontmatter (date, duration, volume, exercises, PR count, `#workout` tag) and a table per exercise, so it works with Dataview, links and daily notes.
 - **Charts in your notes:** embed live charts with code blocks (see below).
 - **Commands and ribbon icon.** All units are kg.

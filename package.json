@@ -1,6 +1,6 @@
 {
   "name": "obsidian-workout-plugin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Track exercises, build workouts, log sessions and chart your progress in Obsidian.",
   "main": "main.js",
   "scripts": {

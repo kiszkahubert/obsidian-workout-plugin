@@ -443,6 +443,11 @@
 	font-size: var(--font-ui-small);
 	font-variant-numeric: tabular-nums;
 }
+.workout-ex-select {
+	max-width: 100%;
+	font-weight: var(--font-semibold);
+	font-size: var(--font-ui-medium, inherit);
+}
 .workout-ex-info {
 	font-size: var(--font-ui-small);
 	color: var(--text-muted);
@@ -607,6 +612,10 @@
 }
 .is-mobile .workout-sets-time .workout-set-row {
 	grid-template-columns: 24px minmax(56px, 2fr) 46px 38px;
+}
+.is-mobile .workout-ex-select {
+	font-size: 16px;
+	min-height: 40px;
 }
 .is-mobile .workout-done-btn {
 	width: 44px;

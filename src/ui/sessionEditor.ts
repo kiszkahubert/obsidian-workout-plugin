@@ -1,6 +1,6 @@
 import { App, Notice, setIcon } from "obsidian";
 import { WorkoutStore } from "../store";
-import { Exercise, SessionExercise, SetEntry, WorkoutSession } from "../types";
+import { Exercise, MUSCLE_GROUPS, SessionExercise, SetEntry, WorkoutSession } from "../types";
 import { describeSet, describeTarget, lastSets, sessionRecords } from "../stats";
 import { formatDuration, parseDuration, parseNum } from "../utils";
 import { confirm, iconButton, pickExercise, textButton } from "./modals";
@@ -141,8 +141,8 @@ export class SessionEditor {
 		const card = root.createDiv({ cls: "workout-card workout-session-ex" });
 		const head = card.createDiv({ cls: "workout-card-head" });
 		const title = head.createDiv({ cls: "workout-card-title" });
-		title.createSpan({ text: ex?.name ?? "Deleted exercise" });
-		if (ex) title.createSpan({ cls: "workout-muted", text: ` · ${ex.muscleGroup}` });
+		if (ex) this.renderExerciseSelect(title, se, ex, ei);
+		else title.createSpan({ text: "Deleted exercise" });
 		const actions = head.createDiv({ cls: "workout-actions" });
 		iconButton(actions, "arrow-up", "Move up", () => this.moveExercise(ei, -1), ei === 0);
 		iconButton(actions, "arrow-down", "Move down", () => this.moveExercise(ei, 1), ei === this.session.exercises.length - 1);
@@ -179,6 +179,77 @@ export class SessionEditor {
 			});
 			this.cb.onStructureChange();
 		}, "workout-add-set");
+	}
+
+	/**
+	 * Dropdown for swapping the exercise in place. Exercises for the same muscle group
+	 * are listed first, then every other muscle group.
+	 */
+	private renderExerciseSelect(parent: HTMLElement, se: SessionExercise, ex: Exercise, ei: number): void {
+		const select = parent.createEl("select", { cls: "dropdown workout-ex-select", attr: { "aria-label": "Change exercise" } });
+		const inSession = new Set(this.session.exercises.map((e) => e.exerciseId));
+		const groups = new Map<string, Exercise[]>();
+		for (const e of this.store.exercisesSorted()) groups.set(e.muscleGroup, [...(groups.get(e.muscleGroup) ?? []), e]);
+		const order = (g: string) => {
+			const i = MUSCLE_GROUPS.indexOf(g);
+			return i < 0 ? MUSCLE_GROUPS.length : i;
+		};
+		const groupNames = [...groups.keys()]
+			.filter((g) => g !== ex.muscleGroup)
+			.sort((a, b) => order(a) - order(b) || a.localeCompare(b));
+		const addGroup = (label: string, items: Exercise[]) => {
+			const og = select.createEl("optgroup", { attr: { label } });
+			for (const e of items) {
+				const suffix = e.id !== ex.id && inSession.has(e.id) ? " (in workout)" : "";
+				og.createEl("option", { value: e.id, text: e.name + suffix });
+			}
+		};
+		addGroup(`${ex.muscleGroup} (same muscle group)`, groups.get(ex.muscleGroup) ?? [ex]);
+		for (const g of groupNames) addGroup(g, groups.get(g) ?? []);
+		select.value = ex.id;
+
+		select.addEventListener("change", () => {
+			const next = this.store.getExercise(select.value);
+			select.value = ex.id;
+			if (!next || next.id === ex.id) return;
+			const done = se.sets.filter((s) => s.done).length;
+			if (this.mode === "active" && done > 0) {
+				confirm(
+					this.app,
+					"Change exercise?",
+					`You've already done ${done} set${done > 1 ? "s" : ""} of ${ex.name}. Switching to ${next.name} replaces them.`,
+					"Change",
+					() => this.swapExercise(ei, next)
+				);
+				return;
+			}
+			this.swapExercise(ei, next);
+		});
+	}
+
+	private swapExercise(ei: number, next: Exercise): void {
+		const old = this.session.exercises[ei];
+		const oldType = this.store.getExercise(old.exerciseId)?.type;
+		const sameType = oldType === next.type;
+
+		// When correcting a finished workout, a same-type swap keeps the logged numbers.
+		if (this.mode === "edit" && sameType) {
+			old.exerciseId = next.id;
+			this.cb.onStructureChange();
+			return;
+		}
+
+		// Keep the planned set count (and rep range for the same kind of exercise);
+		// values are pre-filled from the new exercise's own history.
+		const count = old.sets.length || 3;
+		const target = sameType && old.target
+			? { sets: count, repsMin: old.target.repsMin, repsMax: old.target.repsMax }
+			: { sets: count };
+		const replacement = this.store.buildSessionExercise(next.id, target);
+		if (!sameType || !old.target) replacement.target = undefined;
+		if (this.mode === "edit") replacement.sets.forEach((s) => (s.done = true));
+		this.session.exercises[ei] = replacement;
+		this.cb.onStructureChange();
 	}
 
 	private columns(ex: Exercise): { label: string; kind: "weight" | "reps" | "duration" | "distance" }[] {

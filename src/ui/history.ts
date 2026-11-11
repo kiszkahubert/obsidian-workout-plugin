@@ -63,6 +63,7 @@ export function renderHistory(el: HTMLElement, view: WorkoutView): void {
 		if (s.notes?.trim()) body.createDiv({ cls: "workout-history-notes", text: s.notes.trim() });
 
 		const actions = body.createDiv({ cls: "workout-row-actions" });
+		textButton(actions, "repeat", "Repeat workout", () => void plugin.repeatWorkout(s), "", true);
 		const note = s.notePath ? view.app.vault.getAbstractFileByPath(s.notePath) : null;
 		if (note instanceof TFile) {
 			textButton(actions, "file-text", "Open note", () => void view.app.workspace.getLeaf("tab").openFile(note));

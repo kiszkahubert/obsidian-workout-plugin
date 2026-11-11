@@ -69,20 +69,31 @@ export default class WorkoutPlugin extends Plugin {
 	}
 
 	async startWorkout(template: WorkoutTemplate | null): Promise<void> {
-		const active = this.store.data.activeSession;
-		if (active) {
-			confirm(
-				this.app,
-				"Workout in progress",
-				`"${active.name}" is still in progress. Finish or discard it before starting another one.`,
-				"Open it",
-				() => void this.activateView("log"),
-				false
-			);
-			return;
-		}
+		if (this.blockedByActiveWorkout()) return;
 		await this.store.startSession(template ?? undefined);
 		await this.activateView("log");
+	}
+
+	/** Starts a new workout that repeats a finished one from History. */
+	async repeatWorkout(past: WorkoutSession): Promise<void> {
+		if (this.blockedByActiveWorkout()) return;
+		await this.store.startSessionFromPast(past);
+		await this.activateView("log");
+	}
+
+	/** Only one workout can run at a time; offers to open the running one. */
+	private blockedByActiveWorkout(): boolean {
+		const active = this.store.data.activeSession;
+		if (!active) return false;
+		confirm(
+			this.app,
+			"Workout in progress",
+			`"${active.name}" is still in progress. Finish or discard it before starting another one.`,
+			"Open it",
+			() => void this.activateView("log"),
+			false
+		);
+		return true;
 	}
 
 	async finishActiveWorkout(): Promise<void> {

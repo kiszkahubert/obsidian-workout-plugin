@@ -178,6 +178,30 @@ export class WorkoutStore extends Events {
 		return session;
 	}
 
+	/** Starts a new workout with the same exercises and sets as a past one (values copied, nothing marked done). */
+	async startSessionFromPast(past: WorkoutSession): Promise<WorkoutSession> {
+		const session: WorkoutSession = {
+			id: uid(),
+			name: past.name,
+			templateId: past.templateId,
+			date: todayISO(),
+			startedAt: Date.now(),
+			exercises: past.exercises
+				.filter((se) => this.getExercise(se.exerciseId))
+				.map((se) => ({
+					exerciseId: se.exerciseId,
+					target: se.target ? cloneDeep(se.target) : undefined,
+					sets: se.sets
+						.filter((s) => s.done)
+						.map((s) => ({ weight: s.weight, reps: s.reps, duration: s.duration, distance: s.distance, done: false })),
+				}))
+				.filter((se) => se.sets.length > 0),
+		};
+		this.data.activeSession = session;
+		await this.commit();
+		return session;
+	}
+
 	/** Drops sets not marked done and exercises left empty. Returns the stored session, or null if nothing was done. */
 	async finishActiveSession(): Promise<WorkoutSession | null> {
 		const s = this.data.activeSession;
