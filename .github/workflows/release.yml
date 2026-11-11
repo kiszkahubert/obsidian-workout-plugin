@@ -1,44 +1,68 @@
 name: Release
 
-# Push a tag that matches the version in manifest.json (e.g. 1.2.0) to build the
-# plugin and publish a GitHub release with main.js, manifest.json and styles.css.
+# Publishes a GitHub release (main.js, manifest.json, styles.css) for the version in
+# manifest.json. Runs when the default branch is pushed with a version that has no
+# release yet, when a version tag is pushed, or manually from the Actions tab.
 on:
   push:
+    branches:
+      - "**"
     tags:
       - "*"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   release:
+    if: github.ref_type == 'tag' || github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./manifest.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "$version" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match manifest.json version $version"
+            exit 1
+          fi
+          if gh release view "$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Nothing to release
+        if: steps.version.outputs.exists == 'true' && github.ref_type != 'tag'
+        run: echo "Release ${{ steps.version.outputs.version }} already exists; bump the version in manifest.json to publish a new one."
+
       - uses: actions/setup-node@v4
+        if: steps.version.outputs.exists == 'false' || github.ref_type == 'tag'
         with:
           node-version: 22
           cache: npm
 
-      - run: npm ci
-      - run: npm run build
-
-      - name: Check tag matches manifest version
+      - name: Build
+        if: steps.version.outputs.exists == 'false' || github.ref_type == 'tag'
         run: |
-          version=$(node -p "require('./manifest.json').version")
-          if [ "$version" != "$GITHUB_REF_NAME" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match manifest.json version $version"
-            exit 1
-          fi
+          npm ci
+          npm run build
 
       - name: Publish release
+        if: steps.version.outputs.exists == 'false' || github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" main.js manifest.json styles.css --clobber
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release upload "$VERSION" main.js manifest.json styles.css --clobber
           else
-            gh release create "$GITHUB_REF_NAME" main.js manifest.json styles.css \
-              --title "$GITHUB_REF_NAME" --generate-notes
+            gh release create "$VERSION" main.js manifest.json styles.css \
+              --target "$GITHUB_SHA" --title "$VERSION" --generate-notes
           fi

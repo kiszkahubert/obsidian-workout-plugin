@@ -124,6 +124,6 @@ For development, `npm run dev` rebuilds on every change.
 ## Releasing a new version
 
 1. Bump `version` in `manifest.json` and `package.json`, and add the new version to `versions.json`.
-2. Commit, then push a tag with exactly that version (no "v"), e.g. `git tag 1.2.0 && git push origin 1.2.0`.
+2. Commit and push to the default branch.
 
-The **Release** GitHub Action builds the plugin and publishes a release with `main.js`, `manifest.json` and `styles.css`. BRAT picks it up from there.
+The **Release** GitHub Action notices the new version, builds the plugin and publishes a release (tag = version) with `main.js`, `manifest.json` and `styles.css`. BRAT picks it up from there. Pushing a version tag, or running the workflow from the Actions tab, also works.
